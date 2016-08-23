@@ -63,7 +63,7 @@ public class MoviesDB extends Fragment {
 
     private void updateWeather() {
         FetchMoviesTask moviesTask=new FetchMoviesTask();
-        moviesTask.execute("");
+        moviesTask.execute("exe");
     }
 
     @Override
@@ -100,6 +100,7 @@ public class MoviesDB extends Fragment {
 
 
 
+
         return rootView;
     }
 
@@ -115,7 +116,7 @@ public class MoviesDB extends Fragment {
 
 
 
-    public class FetchMoviesTask extends AsyncTask<String, Void, Movie[]> {
+    public class FetchMoviesTask extends AsyncTask<String, Void, String[]> {
 
         private final String LOG_TAG = FetchMoviesTask.class.getSimpleName();
 
@@ -130,7 +131,7 @@ public class MoviesDB extends Fragment {
          * Fortunately parsing is easy:  constructor takes the JSON string and converts it
          * into an Object hierarchy for us.
          */
-        private Movie[] getMoviesDataFromJson(String moviesJsonStr)
+        private String[] getMoviesDataFromJson(String moviesJsonStr)
                 throws JSONException {
 
             // These are the names of the JSON objects that need to be extracted.
@@ -144,6 +145,7 @@ public class MoviesDB extends Fragment {
             JSONObject mainObject = new JSONObject(moviesJsonStr);
             JSONArray resultsArray = mainObject.getJSONArray("results");
             Movie[] resultStrs = new Movie[resultsArray.length()];
+            String[] posterpath=new String[resultsArray.length()];
             for (int i = 0; i < resultsArray.length(); i++) {
                 // For now, using the format "Day, description, hi/low"
                 JSONObject indexObject = resultsArray.getJSONObject(i);
@@ -160,18 +162,19 @@ public class MoviesDB extends Fragment {
                 indexMovie.setVote_count(indexObject.getInt("vote_count"));
 
                 resultStrs[i]=indexMovie; // Add each item to the list
+                posterpath[i]="http://image.tmdb.org/t/p/w185"+indexMovie.getBackdrop_path();
 
             }
 
             for (Movie s : resultStrs) {
                 Log.v(LOG_TAG, "Forecast entry: " + s);
             }
-            return resultStrs;
+            return posterpath;
 
         }
 
         @Override
-        protected Movie[] doInBackground(String... params) {
+        protected String[] doInBackground(String... params) {
             // These two need to be declared outside the try/catch
             // so that they can be closed in the finally block.
             if (params.length == 0) {
@@ -258,14 +261,16 @@ public class MoviesDB extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(Movie[] result) {
+        protected void onPostExecute(String[] result) {
             super.onPostExecute(result);
             //  String[] result = new String[0];
             if (result != null) {
-                mForecastAdapter.clear();
-                for (Movie dayForecastStr : result) {
-                    mForecastAdapter.add(dayForecastStr);
+              mForecastAdapter.clear();
+                for (String dayForecastStr : result) {
+                    Log.v(LOG_TAG, "backdrop " + dayForecastStr);
+            //        mForecastAdapter.add(dayForecastStr);
                 }
+
             }
         }
     }
