@@ -1,9 +1,12 @@
 package com.example.kakarot.popularmovies2;
 
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -13,6 +16,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.GridView;
 
 import org.json.JSONArray;
@@ -25,11 +29,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 
-/**
- * A simple {@link Fragment} subclass.
- */
+
 public class MoviesDB extends Fragment {
     private ImageListAdapter mForecastAdapter;
 
@@ -40,13 +45,13 @@ public class MoviesDB extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
+       // setHasOptionsMenu(true);
     }
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.moviesfragment,menu);
+       // inflater.inflate(R.menu.main,menu);
     }
 
     @Override
@@ -63,7 +68,16 @@ public class MoviesDB extends Fragment {
 
     private void updateWeather() {
         FetchMoviesTask moviesTask=new FetchMoviesTask();
-        moviesTask.execute("exe");
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String order = prefs.getString(getString(R.string.pref_order_key),
+                getString(R.string.pref_order_default));
+        moviesTask.execute(order);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
     }
 
     @Override
@@ -72,30 +86,41 @@ public class MoviesDB extends Fragment {
         // Inflate the layout for this fragment
         View rootView=inflater.inflate(R.layout.fragment_movies_db, container, false);
 
-        String[] data={
-                "http://i.imgur.com/rFLNqWI.jpg",
-                "http://i.imgur.com/C9pBVt7.jpg",
-                "http://i.imgur.com/rT5vXE1.jpg",
-                "http://i.imgur.com/aIy5R2k.jpg",
-                "http://i.imgur.com/MoJs9pT.jpg",
-                "http://i.imgur.com/S963yEM.jpg",
-                "http://i.imgur.com/rLR2cyc.jpg",
-                "http://i.imgur.com/SEPdUIx.jpg",
-                "http://i.imgur.com/aC9OjaM.jpg",
-                "http://i.imgur.com/76Jfv9b.jpg",
-                "http://i.imgur.com/fUX7EIB.jpg",
-                "http://i.imgur.com/syELajx.jpg",
-                "http://i.imgur.com/COzBnru.jpg",
-                "http://i.imgur.com/Z3QjilA.jpg",
+      //  Movie one=new Movie();
+       // one.setPoster_path("http://image.tmdb.org/t/p/w185//nBNZadXqJSdt05SHLqgT0HuC5Gm.jpg");
+
+
+        Movie[] data={
         };
-      // List<String> weekForecast = new ArrayList<String>(Arrays.asList(data));
+       List<Movie> weekForecast = new ArrayList<Movie>(Arrays.asList(data));
 
         mForecastAdapter =
-                new ImageListAdapter(getActivity(),data);
+                new ImageListAdapter(getActivity(),weekForecast);
         GridView gridView = (GridView) rootView.findViewById(R.id.gridview);
        gridView.setAdapter(mForecastAdapter);
 
+        gridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                try {
+                    Movie movie = (Movie) mForecastAdapter.getItem(position);
 
+                    String overview = movie.getOverview();
+                    String posterpath = "http://image.tmdb.org/t/p/w342/" + movie.getPoster_path();
+                    String title = movie.getTitle();
+                    String releasedate = movie.getRelease_date();
+                    int voteavg = movie.getVote_average();
+                    Intent intent = new Intent(getActivity(), DetailActivity.class);
+                    Bundle extras = new Bundle();
+                    extras.putString("OVERVIEW", overview);
+                    extras.putString("POSTERPATH", posterpath);
+                    extras.putString("TITLE", title);
+                    extras.putString("RELEASEDATE", releasedate);
+                    extras.putInt("VOTEAVG", voteavg);
+                    intent.putExtras(extras);
+                    startActivity(intent);
+                }catch (ClassCastException c){}
+        }});
 
 
 
@@ -116,7 +141,7 @@ public class MoviesDB extends Fragment {
 
 
 
-    public class FetchMoviesTask extends AsyncTask<String, Void, String[]> {
+    public class FetchMoviesTask extends AsyncTask<String, Void, List<Movie>> {
 
         private final String LOG_TAG = FetchMoviesTask.class.getSimpleName();
 
@@ -131,12 +156,12 @@ public class MoviesDB extends Fragment {
          * Fortunately parsing is easy:  constructor takes the JSON string and converts it
          * into an Object hierarchy for us.
          */
-        private String[] getMoviesDataFromJson(String moviesJsonStr)
+        private List<Movie> getMoviesDataFromJson(String moviesJsonStr)
                 throws JSONException {
 
             // These are the names of the JSON objects that need to be extracted.
-            final String OWM_LIST = "results";
-            final String OWM_DESCRIPTION = "poster_path";
+           // final String OWM_LIST = "results";
+           // final String OWM_DESCRIPTION = "poster_path";
 
            // JSONObject moviesJson = new JSONObject(moviesJsonStr);
           //  JSONArray moviesArray = moviesJson.getJSONArray(OWM_LIST);
@@ -145,36 +170,36 @@ public class MoviesDB extends Fragment {
             JSONObject mainObject = new JSONObject(moviesJsonStr);
             JSONArray resultsArray = mainObject.getJSONArray("results");
             Movie[] resultStrs = new Movie[resultsArray.length()];
-            String[] posterpath=new String[resultsArray.length()];
+           // String[] posterpath=new String[resultsArray.length()];
             for (int i = 0; i < resultsArray.length(); i++) {
                 // For now, using the format "Day, description, hi/low"
                 JSONObject indexObject = resultsArray.getJSONObject(i);
                 Movie indexMovie = new Movie();
-                indexMovie.setBackdrop_path(indexObject.getString("backdrop_path"));
+                indexMovie.setBackdrop_path("http://image.tmdb.org/t/p/w342/"+indexObject.getString("backdrop_path"));
                 indexMovie.setId(indexObject.getInt("id"));
                 indexMovie.setOriginal_title(indexObject.getString("original_title"));
                 indexMovie.setOverview(indexObject.getString("overview"));
                 indexMovie.setRelease_date(indexObject.getString("release_date"));
-                indexMovie.setPoster_path(indexObject.getString("poster_path"));
+                indexMovie.setPoster_path("http://image.tmdb.org/t/p/w342/"+indexObject.getString("poster_path"));
                 indexMovie.setPopularity(indexObject.getDouble("popularity"));
                 indexMovie.setTitle(indexObject.getString("title"));
                 indexMovie.setVote_average(indexObject.getInt("vote_average"));
                 indexMovie.setVote_count(indexObject.getInt("vote_count"));
 
                 resultStrs[i]=indexMovie; // Add each item to the list
-                posterpath[i]="http://image.tmdb.org/t/p/w185"+indexMovie.getBackdrop_path();
+               // posterpath[i]="http://image.tmdb.org/t/p/w185"+indexMovie.getBackdrop_path();
 
             }
-
+            List<Movie> weekForecast2 = new ArrayList<>(Arrays.asList(resultStrs));
             for (Movie s : resultStrs) {
                 Log.v(LOG_TAG, "Forecast entry: " + s);
             }
-            return posterpath;
+            return weekForecast2;
 
         }
 
         @Override
-        protected String[] doInBackground(String... params) {
+        protected List<Movie> doInBackground(String... params) {
             // These two need to be declared outside the try/catch
             // so that they can be closed in the finally block.
             if (params.length == 0) {
@@ -194,7 +219,7 @@ public class MoviesDB extends Fragment {
                 // Possible parameters are avaiable at OWM's forecast API page, at
                 // http://openweathermap.org/API#forecast
                 final String MOVIES_BASE_URL =
-                        "http://api.themoviedb.org/3/movie/popular?";
+                        "http://api.themoviedb.org/3/movie/"+params[0]+"?";
 
                 final String APPID_PARAM = "api_key";
 
@@ -261,16 +286,16 @@ public class MoviesDB extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(String[] result) {
+        protected void onPostExecute(List<Movie> result) {
             super.onPostExecute(result);
             //  String[] result = new String[0];
             if (result != null) {
               mForecastAdapter.clear();
-                for (String dayForecastStr : result) {
+                for (Movie dayForecastStr : result) {
                     Log.v(LOG_TAG, "backdrop " + dayForecastStr);
-            //        mForecastAdapter.add(dayForecastStr);
+                    mForecastAdapter.add(dayForecastStr);
                 }
-
+                mForecastAdapter.add(result);
             }
         }
     }
